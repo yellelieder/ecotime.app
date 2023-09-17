@@ -19,15 +19,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error(err);
   };
 
-  try {
-    navigator.geolocation.getCurrentPosition(success, error, options);
-  } catch (err) {
-    showFallback();
-    console.error(err);
-  }
-});
+  const geoButton = document.createElement("button");
+  geoButton.innerText = "Allow location access";
+  geoButton.id = "fallback-button";
 
-function updateScale({ min, max, intensity }) {
+  const explanation = document.getElementById("explanation");
+  explanation.appendChild(geoButton);
+
+  geoButton.addEventListener("click", async () => {
+    try {
+      navigator.geolocation.getCurrentPosition(success, error, options);
+    } catch (err) {
+      showFallback();
+      console.error(err);
+    }
+  });
+});
+function updateScale({ min, max, intensity, country }) {
   document.getElementById("min").innerText = Math.round(min);
   document.getElementById("max").innerText = Math.round(max);
 
@@ -67,9 +75,10 @@ function updateScale({ min, max, intensity }) {
     conclusion = "<code>high</code>";
   }
 
-  explanation.innerHTML = `Current carbon intensity for your region is <code>${intensity} gCO2/kWh</code>, which is ${conclusion}. For the last 24h, the worst-case was ${Math.round(
-    max
-  )} gCO2/kWh and the best-case ${Math.round(min)} gCO2/kWh.`;
+  explanation.innerHTML = `<code>${country}s</code> current carbon intensity is <code>${intensity} gCO2e/kWh</code>, which is ${conclusion}. 
+  For the last 24h,  the best-case was ${Math.round(
+    min
+  )} and the worst-case ${Math.round(max)} gCO2e/kWh.`;
 
   document.getElementById("scale-container").appendChild(intensityIndicator);
 }
@@ -81,9 +90,62 @@ function showFallback() {
 
   const instructions = document.createElement("p");
   instructions.innerHTML =
-    "To enable location tracking:<br>1. Open your browser settings.<br>2. Navigate to the Privacy or Location section.<br>3. Enable location access for this website.<br>4. Refresh the page.";
+    "To enable location tracking:<br>1. Open your browser settings.<br>2. Navigate to the Privacy or Location section.<br>3. Enable location access for this website.<br>4. Refresh the page.<br><br> Or select your country from the drop-down:";
 
   explanation.appendChild(instructions);
+  createCountryDropdown();
 }
 
+function createCountryDropdown() {
+  const explanation = document.getElementById("explanation");
 
+  const select = document.createElement("select");
+  select.id = "country-select";
+  select.innerHTML = "<option value=''>Select your location</option>";
+
+  const countries = [
+    { name: "Austria", lat: 47.5162, lon: 14.5501 },
+    { name: "Belgium", lat: 50.8503, lon: 4.3517 },
+    { name: "Czech Republic", lat: 49.8175, lon: 15.4724 },
+    { name: "Denmark", lat: 56.2639, lon: 9.5018 },
+    { name: "Estonia", lat: 58.5953, lon: 25.0136 },
+    { name: "Finland", lat: 61.9241, lon: 25.7482 },
+    { name: "France", lat: 46.6034, lon: 1.8883 },
+    { name: "Germany", lat: 51.1657, lon: 10.4515 },
+    { name: "Greece", lat: 39.0742, lon: 21.8243 },
+    { name: "Hungary", lat: 47.1625, lon: 19.5033 },
+    { name: "Ireland", lat: 53.1424, lon: -7.6921 },
+    { name: "Italy", lat: 41.8719, lon: 12.5675 },
+    { name: "Latvia", lat: 56.8796, lon: 24.6032 },
+    { name: "Lithuania", lat: 55.1694, lon: 23.8813 },
+    { name: "Netherlands", lat: 52.1326, lon: 5.2913 },
+    { name: "Poland", lat: 51.9194, lon: 19.1451 },
+    { name: "Portugal", lat: 38.7223, lon: -9.1393 },
+    { name: "Spain", lat: 40.4637, lon: -3.7492 },
+    { name: "Sweden", lat: 60.1282, lon: 18.6435 },
+  ];
+  for (const country of countries) {
+    const option = document.createElement("option");
+    option.value = JSON.stringify(country);
+    option.text = country.name;
+    select.appendChild(option);
+  }
+
+  select.addEventListener("change", async (event) => {
+    const country = JSON.parse(event.target.value);
+    if (country) {
+      const response = await fetch(
+        `https://yel.li/ecotime/?lat=${country.lat}&lon=${country.lon}`
+      );
+      const data = await response.json();
+      updateScale(data);
+    }
+  });
+
+  explanation.appendChild(select);
+
+  const explanationText = document.createElement("p");
+  explanationText.innerText =
+    "Dropdown selection is less accurate, as energy grids are segmented in many countries. Therefore the CO2 intensity is not the same everywhere in many countries. It is therefore recommended to use the geo-localization of the browser, as it is much more precise based on exact coordinates. Usually, consent to share location has to be given only once.";
+  explanation.appendChild(explanationText);
+}
