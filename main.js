@@ -149,3 +149,15 @@ function createCountryDropdown() {
     "Dropdown selection is less accurate, as energy grids are segmented in many countries. Therefore the CO2 intensity is not the same everywhere in many countries. It is therefore recommended to use the geo-localization of the browser, as it is much more precise based on exact coordinates. Usually, consent to share location has to be given only once.";
   explanation.appendChild(explanationText);
 }
+
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker
+    .register("service-worker.js")
+    .then(function (registration) {
+      console.log("ServiceWorker registration successful");
+    })
+    .catch(function (error) {
+      console.log("ServiceWorker registration failed: ", error);
+    });
+}
